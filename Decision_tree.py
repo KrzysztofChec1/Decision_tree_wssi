@@ -34,9 +34,55 @@ class Decision_Tree:
 
         feat_idxs = np.random.choice(n_feats,self.n_features,replace=False)
         #szukanie najlepszego rozdzielenia
-        best_tresh,best_feature = self._best_split(X, y,feat_idxs)
 
-    def _best_split(self):
+        best_feature,best_thresh = self._best_split(X, y,feat_idxs)
+
+    def _best_split(self,X,y,feat_idxs):
+        best_gain = -1
+        split_idx,spilt_threshold = None,None
+
+        for feat_idxs in feat_idxs:
+            X_column = X[:,feat_idxs]
+            thresholds = np.unique(X_column)
+
+            for t in thresholds:
+                gain = self._information_gain(y,X_column,t)
+
+                if gain > best_gain:
+                    best_gain = gain
+                    split_idx = feat_idxs
+                    spilt_threshold = t
+        return split_idx
+
+    def _information_gain(self, y, X_column, threshold):
+        # entropia rodzica
+        parent_entropy = self._entropy(y)
+
+        #tworzymy dzieci
+        left_idxs, right_idxs = self._split(X_column, threshold)
+
+        if len(left_idxs) == 0 or len(right_idxs) == 0:
+            return 0
+
+        n = len(y)
+        n_l, n_r = len(left_idxs), len(right_idxs)
+        e_l, e_r = self._entropy(y[left_idxs]), self._entropy(y[right_idxs])
+        child_entropy = (n_l / n) * e_l + (n_r / n) * e_r
+
+        # calculate the IG
+        information_gain = parent_entropy - child_entropy
+        return information_gain
+
+
+    def _split(self, X_column, split_thresh):
+        left_idxs = np.argwhere(X_column <= split_thresh).flatten() # wartosci ktore sa mniejsze od st ktore sa konwertowane do 1 tab (flatten)
+        right_idxs = np.argwhere(X_column > split_thresh).flatten()
+        return left_idxs, right_idxs
+
+    def _entropy(self, y):
+        hist = np.bincount(y) # zlicza ilosc wystpien danych lioczb
+        ps = hist / len(y) # to jest to p(X)
+        return -np.sum([p * np.log(p) for p in ps if p > 0])
 
     def _most_common_label(self,y):
         counter = Counter(y)
